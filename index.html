@@ -95,6 +95,14 @@
       font-size: 0.57rem; letter-spacing: 0.2em;
       text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;
     }
+    /* ── RANK ICON ── */
+    .rc-icon {
+      display: none;
+      width: 42px; height: 42px;
+      object-fit: contain;
+      margin: 0 auto 0.45rem;
+      image-rendering: -webkit-optimize-contrast;
+    }
     .rank-card .rc-rank { font-size: 0.95rem; font-weight: 600; color: var(--accent); line-height: 1.2; }
     .rank-card .rc-div  { font-size: 0.65rem; color: var(--sub); margin-top: 0.2rem; }
     .rank-card .rc-mmr  { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
@@ -197,18 +205,21 @@
       <div class="rank-row">
         <div class="rank-card">
           <div class="rc-mode">1v1</div>
+          <img class="rc-icon" id="r1-icon" alt="">
           <div class="rc-rank" id="r1-rank">—</div>
           <div class="rc-div"  id="r1-div"></div>
           <div class="rc-mmr"  id="r1-mmr">—</div>
         </div>
         <div class="rank-card">
           <div class="rc-mode">2v2</div>
+          <img class="rc-icon" id="r2-icon" alt="">
           <div class="rc-rank" id="r2-rank">—</div>
           <div class="rc-div"  id="r2-div"></div>
           <div class="rc-mmr"  id="r2-mmr">—</div>
         </div>
         <div class="rank-card">
           <div class="rc-mode">3v3</div>
+          <img class="rc-icon" id="r3-icon" alt="">
           <div class="rc-rank" id="r3-rank">—</div>
           <div class="rc-div"  id="r3-div"></div>
           <div class="rc-mmr"  id="r3-mmr">—</div>
@@ -271,10 +282,33 @@
 
     /* ── CONFIG ────────────────────────────── */
     const RAPID_KEY    = 'f799324f71mshaeee995f29881c8p192631jsna78f07c1adf0';
-    const EPIC_NAME    = 'yEW6nQZHSp';   // Epic display name linked to PSN Dustorb
+    const EPIC_NAME    = 'yEW6nQZHSp';
     const API_URL      = 'https://rocket-league10.p.rapidapi.com/stats/epic/' + EPIC_NAME;
     const RAPID_HOST   = 'rocket-league10.p.rapidapi.com';
     const DIV_MAP      = {0:'I', 1:'II', 2:'III', 3:'IV'};
+
+    /* ── RANK ICON MAP ──────────────────────── */
+    // Keys must match the base tier name (no division suffix) in lowercase.
+    // All images go in a /ranks/ folder next to index.html.
+    const TIER_ICON = {
+      'unranked':          'ranks/unranked.png',
+      'bronze':            'ranks/bronze.png',
+      'silver':            'ranks/silver.png',
+      'gold':              'ranks/gold.png',
+      'platinum':          'ranks/platinum.png',
+      'diamond':           'ranks/diamond.png',
+      'champion':          'ranks/champion.png',
+      'grand champion':    'ranks/grand-champion.png',
+      'supersonic legend': 'ranks/ssl.png',
+      'ssl':               'ranks/ssl.png',
+    };
+
+    // Strip trailing Roman-numeral division (I, II, III, IV) from tier name
+    function tierIcon(tierName) {
+      if (!tierName || tierName === '—') return null;
+      const base = tierName.toLowerCase().replace(/\s+(iv|i{1,3})$/, '').trim();
+      return TIER_ICON[base] ?? null;
+    }
 
     /* ── UI helpers ─────────────────────────── */
     function setUI(state, label) {
@@ -317,9 +351,23 @@
           ? 'Div ' + (DIV_MAP[p.division] ?? DIV_MAP[p.division - 1] ?? p.division)
           : '';
         const mmr  = p.mmr ?? p.rating;
+
         document.getElementById('r'+n+'-rank').textContent = tier;
         document.getElementById('r'+n+'-div').textContent  = div;
         document.getElementById('r'+n+'-mmr').textContent  = mmr != null ? Math.round(mmr)+' MMR' : '—';
+
+        // Rank icon
+        const img = document.getElementById('r'+n+'-icon');
+        if (img) {
+          const src = tierIcon(tier);
+          if (src) {
+            img.src = src;
+            img.alt = tier;
+            img.style.display = 'block';
+          } else {
+            img.style.display = 'none';
+          }
+        }
       }
       apply('1', v1); apply('2', v2); apply('3', v3);
     }
@@ -347,16 +395,13 @@
         try { data = JSON.parse(text); }
         catch(e) { showDebug('Bad JSON:\n' + text.slice(0, 400)); setUI('err','bad json'); return; }
 
-        // Paint lifetime stats
         if (data.lifetime) paintLifetime(data.lifetime);
 
-        // Paint ranks — could be data.ranked, data.playlists, data.ranks, etc.
         const rankList = data.ranked ?? data.playlists ?? data.ranks
           ?? (Array.isArray(data) ? data : null);
         if (rankList) {
           paintRanks(rankList);
         } else {
-          // Log the keys so we can find where ranks are
           console.log('API response keys:', Object.keys(data));
         }
 
