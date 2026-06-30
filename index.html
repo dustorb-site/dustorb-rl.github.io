@@ -349,13 +349,18 @@
       const v2 = find('doubles','2v2');
       const v3 = find('standard','3v3');
 
+      function formatDivision(raw) {
+        if (raw == null || raw === '') return '';
+        if (typeof raw === 'number') return 'Div ' + (DIV_MAP[raw] ?? raw);
+        const cleaned = String(raw).replace(/division/i, '').trim();
+        return cleaned ? 'Div ' + cleaned : '';
+      }
+
       function apply(n, p) {
         if (!p) return;
-        const tier = p.tierName ?? p.rank ?? '—';
-        const div  = p.division != null
-          ? 'Div ' + (DIV_MAP[p.division] ?? DIV_MAP[p.division - 1] ?? p.division)
-          : '';
-        const mmr  = p.mmr ?? p.rating;
+        const tier = p.tier ?? p.tierName ?? p.rank ?? '—';
+        const div  = formatDivision(p.division ?? p.peakDivision);
+        const mmr  = p.mmr ?? p.rating ?? p.peakRating;
 
         document.getElementById('r'+n+'-rank').textContent = tier;
         document.getElementById('r'+n+'-div').textContent  = div;
